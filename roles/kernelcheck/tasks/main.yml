@@ -1,0 +1,80 @@
+- name: Check /opt writable to store checker.
+  stat:
+    path: /opt/spectre-meltdown-checker/spectre-meltdown-checker.sh
+  register: opt_stat
+
+- name: Create /opt/spectre-meltdown-checker/
+  file:
+    path: /opt/spectre-meltdown-checker/
+    state: directory
+  when: opt_stat.stat.exists == False
+
+- name: Download spectre-meltdown-checker
+  get_url:
+    url: "https://raw.githubusercontent.com/speed47/spectre-meltdown-checker/{{ checker_version }}/spectre-meltdown-checker.sh"
+    dest: /opt/spectre-meltdown-checker/spectre-meltdown-checker.sh
+    mode: u=rx,g=rx,o=r
+    force: yes
+
+- block:
+  - name: Run check variant 1
+    shell: /opt/spectre-meltdown-checker/spectre-meltdown-checker.sh --no-color --variant 1
+    register: check
+    failed_when: false
+    changed_when: false
+
+  - name: Check output variant 1
+    debug:
+      var: check.stdout_lines
+    changed_when: "'STATUS: VULNERABLE' in check.stdout"
+
+  - name: VULNERABLE to variant 1?
+    assert:
+      that:
+        - "not 'STATUS: VULNERABLE' in check.stdout"
+      msg: "This host is vulnerable to variant 1 (Spectre)."
+  tags:
+    - variant-1
+    - spectre
+
+- block:
+  - name: Run check variant 2
+    shell: /opt/spectre-meltdown-checker/spectre-meltdown-checker.sh --no-color --variant 2
+    register: check
+    failed_when: false
+    changed_when: false
+
+  - name: Check output variant 2
+    debug:
+      var: check.stdout_lines
+    changed_when: "'STATUS: VULNERABLE' in check.stdout"
+
+  - name: VULNERABLE to variant 2?
+    assert:
+      that:
+        - "not 'STATUS: VULNERABLE' in check.stdout"
+      msg: "This host is vulnerable to variant 2 (Spectre)."
+  tags:
+    - variant-2
+    - spectre
+
+- block:
+  - name: Run check variant 3
+    shell: /opt/spectre-meltdown-checker/spectre-meltdown-checker.sh --no-color --variant 3
+    register: check
+    failed_when: false
+    changed_when: false
+
+  - name: Check output variant 3
+    debug:
+      var: check.stdout_lines
+    changed_when: "'STATUS: VULNERABLE' in check.stdout"
+
+  - name: AVULNERABLE to variant 3?
+    assert:
+      that:
+        - "not 'STATUS: VULNERABLE' in check.stdout"
+      msg: "This host is vulnerable to variant 3 (Meltdown)."
+  tags:
+    - variant-3
+    - meltdown
